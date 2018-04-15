@@ -14,6 +14,7 @@ def create_args_string(num):
 @asyncio.coroutine
 def create_pool(loop, **kw):
     logging.info('Create database connection pool....')
+    print('create_pool  Create database connection pool....')
     global __pool
     __pool = yield from aiomysql.create_pool(
         host=kw.get('host', 'localhost'),
@@ -67,6 +68,7 @@ class ModelMetaclass(type):
         #获取table的名称
         tableName = attrs.get('__table__', None) or name
         logging.info('found model:%s (table: %s)'%(name, tableName))
+        print('found model:%s (table: %s)'%(name, tableName))
         #获取所有的Field和主键名
         mappings = dict()#字典 key-value
         fields = []#存放除主键以外的key名称
@@ -74,6 +76,7 @@ class ModelMetaclass(type):
         for k, v in attrs.items():
             if isinstance(v, Field):
                 logging.info('found mapping: %s==>%s'%(k, v))
+                print('found mapping: %s==>%s'%(k, v))
                 mappings[k] = v
                 if v.primary_key:
                     #找到主键
@@ -139,7 +142,7 @@ class Model(dict, metaclass=ModelMetaclass):
         args.append(self.getValueOrDefault(self.__primary_key__))
         rows = yield from execute(self.__insert__, args)
         if rows != 1:
-            logging.warn('failed to insert record. affected rows:%s'%rows)
+            logging.warning('failed to insert record. affected rows:%s'%rows)
 
 #表明表字段类型的类
 class Field(object):
@@ -151,10 +154,25 @@ class Field(object):
 
     def __str__(self):
         return '<%s, %s:%s>'%(self.__class__.__name__, self.colume_type, self.name)
-
 class StringField(Field):
     def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
         super().__init__(name, ddl, primary_key, default)
+class BooleanField(Field):
+
+    def __init__(self, name=None, default=False):
+        super().__init__(name, 'boolean', False, default)
+class IntegerField(Field):
+
+    def __init__(self, name=None, primary_key=False, default=0):
+        super().__init__(name, 'bigint', primary_key, default)
+class FloatField(Field):
+
+    def __init__(self, name=None, primary_key=False, default=0.0):
+        super().__init__(name, 'real', primary_key, default)
+class TextField(Field):
+
+    def __init__(self, name=None, default=None):
+        super().__init__(name, 'text', False, default)
 
 if __name__=='__main__':
     pass
